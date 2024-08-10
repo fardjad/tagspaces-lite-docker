@@ -1,0 +1,67 @@
+name: build-and-push
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 0 * * *"
+        
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.value }}
+      image_exists: ${{ steps.image_exists.outputs.value }}
+    steps:
+      - name: Get the latest release
+        id: tag
+        run: |
+          TAG="$(curl https://api.github.com/repos/tagspaces/tagspaces/releases/latest -s | jq .name -r)"
+          echo "value=${TAG#v}" >> $GITHUB_OUTPUT
+      - name: Login to Docker Hub
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Check if image exists
+        id: image_exists
+        run: |
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/tagspaces-lite-web:${{ steps.tag.outputs.value }}"
+          if docker manifest inspect "$IMAGE" &> /dev/null; then
+            echo "value=true" >> $GITHUB_OUTPUT
+          else
+            echo "value=false" >> $GITHUB_OUTPUT
+          fi
+  build-and-push:
+    needs:
+      - check-version
+    if: needs.check-version.outputs.image_exists == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+      - name: Download the latest release
+        run: curl -sSLo tagspaces-web.zip "$URL"
+        env:
+          URL: "https://github.com/tagspaces/tagspaces/releases/download/v${{ needs.check-version.outputs.tag }}/tagspaces-web-${{ needs.check-version.outputs.tag }}.zip"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@master
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@master
+      - name: Login to Docker Hub
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@master
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: "${{ env.IMAGE }}:${{ env.TAG }},${{ env.IMAGE }}:latest"
+    env:
+      IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/tagspaces-lite-web
+      TAG: ${{ needs.check-version.outputs.tag }}
