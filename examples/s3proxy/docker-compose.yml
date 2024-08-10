@@ -1,0 +1,28 @@
+services:
+  tagspaces-lite-web:
+    # image: fardjad/tagspaces-lite-web:latest
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    network_mode: bridge
+    container_name: tagspaces-lite-web
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/50x.html:/usr/share/nginx/html/50x.html:ro
+      - ./extconfig.js:/usr/share/nginx/html/extconfig.js:ro
+    links:
+      - s3proxy
+  s3proxy:
+    image: andrewgaul/s3proxy
+    container_name: s3proxy
+    restart: unless-stopped
+    network_mode: bridge
+    environment:
+      S3PROXY_AUTHORIZATION: none
+      S3PROXY_ENDPOINT: "http://0.0.0.0:8080"
+      JCLOUDS_PROVIDER: filesystem
+      JCLOUDS_FILESYSTEM_BASEDIR: /buckets
+    volumes:
+      - ./buckets:/buckets

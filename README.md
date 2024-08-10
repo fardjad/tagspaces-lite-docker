@@ -39,3 +39,23 @@ services:
     ports:
       - "8080:8080"
 ```
+
+### Example
+
+You can find an example setup of TagSpaces Lite with S3Proxy
+[here](./examples/s3proxy/). The following software is required to run the
+example:
+
+- Docker with Docker Compose
+- curl
+- jq
+
+To run the example, execute the following commands:
+
+```bash
+./download-latest-tagspaces-web.sh
+cd examples/s3proxy
+docker-compose up
+```
+
+Then, open your browser and navigate to `http://localhost:8080`.
