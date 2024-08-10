@@ -3,11 +3,13 @@
 This repository contains a GitHub Actions workflow to build an always up-to-date
 Docker image for [TagSpaces Lite Web](https://www.tagspaces.org/products/).
 
-The folks at TagSpaces already provide a
-[Docker Image](https://hub.docker.com/r/tagspaces/tagspaces-lite-web), but it's
-not up to date, so I created this repository to automate the process of building
-a new image whenever a new version of
-[TagSpaces](https://github.com/tagspaces/tagspaces) is released.
+While the folks at TagSpaces provide a
+[Docker Image](https://hub.docker.com/r/tagspaces/tagspaces-lite-web), it is not
+always up to date and runs nginx as root. I created this repository to build a
+multi-arch image based on
+[nginxinc/nginx-unprivileged](https://hub.docker.com/r/nginxinc/nginx-unprivileged)
+every time a new version of [TagSpaces](https://github.com/tagspaces/tagspaces)
+is released.
 
 ## How It Works
 
@@ -20,5 +22,20 @@ DockerHub.
 
 ## How to Use
 
-You can use this image as you would use the official one. The official guide is
-available [here](https://docs.tagspaces.org/tutorials/tagspaces-web-docker).
+You can use this image in the same way you would use the official one. The
+official guide is available
+[here](https://docs.tagspaces.org/tutorials/tagspaces-web-docker). The only
+major difference is that this image uses port 8080 instead of port 80.
+
+Here's an example `docker-compose.yml` file to help you get started quickly:
+
+```yaml
+services:
+  tagspaces-lite-web:
+    image: fardjad/tagspaces-lite-web:latest
+    network_mode: bridge
+    restart: unless-stopped
+    container_name: tagspaces-lite-web
+    ports:
+      - "8080:8080"
+```
